@@ -1,14 +1,32 @@
 from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
+
+
 from .models import Post
 from rest_framework import permissions
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from .serializer import PostSerializer
+from .serializer import PostSerializer, UserSerializer
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
+from django.contrib.auth.models import User
 class IsAuthenticatedAndTokenHasScope(permissions.BasePermission):
     def has_permission(self, request, view):
         return 'access_token' in request.auth
+
+
+class CreateUserView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            username = serializer.validated_data['username']
+            password = serializer.validated_data['password']
+            email = serializer.validated_data.get('email', '')
+            user = User.objects.create_user(username=username, password=password, email=email)
+            return Response({'detail': 'User created successfully'})
+        return Response(serializer.errors, status=400)
 
 class PostsView(APIView):
     permission_classes = [IsAuthenticated, IsAuthenticatedAndTokenHasScope]
