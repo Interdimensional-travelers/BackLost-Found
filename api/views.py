@@ -1,6 +1,6 @@
 from rest_framework import generics
 from rest_framework.views import APIView
-
+from rest_framework.response import Response
 from .models import Post
 from rest_framework import permissions
 from .serializer import PostSerializer
@@ -20,3 +20,11 @@ class PostsView(APIView):
 
         queryset = Post.objects.all()
         serializer_class = PostSerializer
+
+    class AddPostView(APIView):
+        def post(self, request):
+            serializer = PostSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=201)
+            return Response(serializer.errors, status=400)
