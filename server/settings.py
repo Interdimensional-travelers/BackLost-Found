@@ -76,6 +76,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'server.wsgi.application'
 
+CSRF_TRUSTED_ORIGINS = ['https://lostfound.azurewebsites.net']
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
