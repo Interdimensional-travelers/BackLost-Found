@@ -106,7 +106,7 @@ class RateLimitMiddleware(MiddlewareMixin):
         request_count = cache.get(rate_limit_key, 0)
 
         # Check if the rate limit is exceeded
-        if request_count >= 30:
+        if request_count >= 60:
             return HttpResponse("Too Many Requests", status=429)
 
         # Increment the request count
