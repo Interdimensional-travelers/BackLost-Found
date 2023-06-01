@@ -1,8 +1,7 @@
+from django.http import HttpResponse
 from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
-
-
 from .models import Post
 from rest_framework import permissions
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -10,6 +9,10 @@ from .serializer import PostSerializer, UserSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.permissions import AllowAny
 from django.contrib.auth.models import User
+from django.utils.deprecation import MiddlewareMixin
+from django.core.cache import cache
+
+
 class IsAuthenticatedAndTokenHasScope(permissions.BasePermission):
     def has_permission(self, request, view):
         return 'access_token' in request.auth
@@ -28,15 +31,15 @@ class CreateUserView(APIView):
             return Response({'detail': 'User created successfully'})
         return Response(serializer.errors, status=400)
 
+
 class PostsView(APIView):
     permission_classes = [IsAuthenticated, IsAuthenticatedAndTokenHasScope]
-    class PostList(generics.ListAPIView):
 
+    class PostList(generics.ListAPIView):
         queryset = Post.objects.all()
         serializer_class = PostSerializer
 
     class PostDetail(generics.RetrieveAPIView):
-
         queryset = Post.objects.all()
         serializer_class = PostSerializer
 
@@ -56,8 +59,8 @@ class PostsView(APIView):
                 serializer.save(author_id=author_id)
                 return Response(serializer.data, status=201)
             return Response(serializer.errors, status=400)
-    class EditPostView(APIView):
 
+    class EditPostView(APIView):
         def put(self, request, post_id):
             try:
                 post = Post.objects.get(id=post_id)
@@ -76,7 +79,6 @@ class PostsView(APIView):
             return Response(serializer.errors, status=400)
 
     class DeletePostView(APIView):
-
         def delete(self, request, post_id):
             try:
                 post = Post.objects.get(id=post_id)
@@ -90,3 +92,25 @@ class PostsView(APIView):
 
             post.delete()
             return Response({'detail': 'Post deleted successfully'})
+
+
+class RateLimitMiddleware(MiddlewareMixin):
+    def process_request(self, request):
+        # Get the client's IP address
+        ip = request.META.get('REMOTE_ADDR')
+
+        # Define the rate limit key
+        rate_limit_key = f'ratelimit:{ip}'
+
+        # Get the current request count
+        request_count = cache.get(rate_limit_key, 0)
+
+        # Check if the rate limit is exceeded
+        if request_count >= 30:
+            return HttpResponse("Too Many Requests", status=429)
+
+        # Increment the request count
+        cache.set(rate_limit_key, request_count + 1, 60)  # 60 seconds = 1 minute
+
+        # Allow the request to proceed
+        return None
