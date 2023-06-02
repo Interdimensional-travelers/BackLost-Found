@@ -2,6 +2,8 @@ from django.http import HttpResponse
 from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
+
 from .models import Post
 from rest_framework import permissions
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -114,3 +116,16 @@ class RateLimitMiddleware(MiddlewareMixin):
 
         # Allow the request to proceed
         return None
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data.get('refresh_token')
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            return Response({"detail": "Logout successful"})
+        except Exception as e:
+            return Response({"detail": "Logout failed"}, status=400)
